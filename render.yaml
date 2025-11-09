@@ -1,0 +1,17 @@
+# Render manifest (optional): describes a web service that builds from this repo using the Dockerfile
+# Note: You can also create the service from the Render dashboard and select the repo/branch/Dockerfile.
+services:
+  - type: web
+    name: querychain-backend
+    env: docker
+    repo: HIMANSHUMOURYADTU/HACKDI    # replace with your GitHub repo owner/name if different
+    branch: main
+    dockerfilePath: Dockerfile
+    startCommand: "node gemini_backend.js"
+    healthCheckPath: /
+    plan: free
+    envVars:
+      - key: PORT
+        value: "3001"
+
+# Sensitive values (GEMINI_API_KEY, MONGODB_URI) must be added in the Render dashboard as secrets.

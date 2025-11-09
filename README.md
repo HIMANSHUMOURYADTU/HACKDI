@@ -264,3 +264,71 @@ MIT
 ## Contributors
 
 Built for HackCBS 🚀
+
+## Deployment
+
+This project can be deployed several ways. Below are recommended, low-friction options.
+
+1) Docker (recommended for reproducible deployments)
+
+ - Build image locally:
+
+```powershell
+docker build -t querychain-backend:latest .
+```
+
+ - Run locally with environment file:
+
+```powershell
+docker run --env-file .env -p 3001:3001 querychain-backend:latest
+```
+
+2) GitHub Container Registry (CI)
+
+ - Push to `main` to trigger the workflow at `.github/workflows/ci-container.yml`. It builds and pushes an image to GHCR.
+ - Configure repository secrets if your deployment provider needs them (example: render, cloud run credentials).
+
+3) Deploy providers (quick notes):
+
+ - Render: Create a new web service from a Docker image or from the repo (auto-build). Use the GHCR image or let Render build from the repo.
+ - Railway / Fly / Heroku: Can use Docker or the Node start command. Provide `GEMINI_API_KEY` and `MONGODB_URI` as environment variables.
+ - Google Cloud Run: Use the pushed GHCR image or build with Cloud Build. Make sure to set required secrets in Cloud Run service.
+
+Secrets you must provide in your host/provider:
+
+- GEMINI_API_KEY
+- MONGODB_URI
+- (Optional) PORT (defaults to 3001)
+
+If you'd like, I can:
+
+- Create a simple `render.yaml` or Cloud Run deploy action for one provider you choose.
+- Replace the local `.env` with `.env.sample` and keep real secrets only locally.
+
+### Render: quick setup and GitHub integration
+
+Option A — Let Render build from the repo (recommended for simplicity):
+
+1. Go to Render dashboard -> New -> Web Service -> Connect your GitHub repo `HIMANSHUMOURYADTU/HACKDI`.
+2. Choose branch `main`.
+3. Environment: Docker. Dockerfile path: `Dockerfile`.
+4. Start command: `node gemini_backend.js`. Health check: `/`.
+5. In the Render service's Environment section, add the required secrets:
+   - `GEMINI_API_KEY` (secret)
+   - `MONGODB_URI` (secret)
+   - `PORT` (3001)
+6. Enable auto-deploy on push to `main`.
+
+Option B — Trigger deploys from GitHub Actions (already included):
+
+- The repository includes `.github/workflows/deploy-to-render.yml`. It calls the Render API to trigger a deploy for a given Render Service ID.
+- To use it, create a Render API key (Account → API Keys) and note your Render Service ID (Service settings). Add both as GitHub repository secrets:
+  - `RENDER_API_KEY`
+  - `RENDER_SERVICE_ID`
+- When both secrets are present, pushing to `main` will trigger the `deploy-to-render.yml` workflow which calls POST `https://api.render.com/v1/services/{SERVICE_ID}/deploys`.
+
+Notes and troubleshooting
+- If you want Render to build from the GitHub repository you do not need to use the workflow — Render's automatic builds are sufficient.
+- If you prefer to publish to GHCR and have Render pull the image, use the GHCR build workflow (already added) and configure Render to deploy from a container image instead.
+- If you want, I can also add a combined GitHub Actions workflow that builds the image, publishes to GHCR, and then triggers Render (fully automated CI -> CD).
+
