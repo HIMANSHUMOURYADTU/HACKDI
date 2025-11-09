@@ -1,0 +1,695 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>QueryChain AI - Natural Language Database Query</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1200px;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            height: 90vh;
+            max-height: 800px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+        }
+
+        .main-content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+
+        .sidebar {
+            width: 280px;
+            background: #f8f9fa;
+            border-right: 1px solid #e0e0e0;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .sidebar h3 {
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            color: #667eea;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        .example-query {
+            background: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 10px;
+            cursor: pointer;
+            border: 1px solid #e0e0e0;
+            transition: all 0.2s;
+            font-size: 0.85rem;
+        }
+
+        .example-query:hover {
+            border-color: #667eea;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.2);
+            transform: translateY(-2px);
+        }
+
+        .chat-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #fafbfc;
+        }
+
+        .messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        .message {
+            display: flex;
+            gap: 15px;
+            animation: slideIn 0.3s ease-out;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message-avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            flex-shrink: 0;
+        }
+
+        .message.user .message-avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.assistant .message-avatar {
+            background: #e0e7ff;
+            color: #667eea;
+        }
+
+        .message-content {
+            max-width: 70%;
+            background: white;
+            padding: 15px 20px;
+            border-radius: 15px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .result-table {
+            width: 100%;
+            margin-top: 15px;
+            border-collapse: collapse;
+            font-size: 0.85rem;
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .result-table th {
+            background: #f8f9fa;
+            padding: 10px;
+            text-align: left;
+            font-weight: 600;
+            border-bottom: 2px solid #e0e0e0;
+        }
+
+        .result-table td {
+            padding: 10px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .result-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .confidence-high {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .confidence-medium {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .confidence-low {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .input-area {
+            padding: 20px 30px;
+            background: white;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .input-wrapper {
+            display: flex;
+            gap: 15px;
+            align-items: flex-end;
+        }
+
+        .input-group {
+            flex: 1;
+        }
+
+        .input-group label {
+            display: block;
+            font-size: 0.85rem;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .input-group input,
+        .input-group select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            transition: all 0.2s;
+        }
+
+        .input-group input:focus,
+        .input-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.95rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-secondary {
+            background: #f8f9fa;
+            color: #667eea;
+            border: 2px solid #667eea;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border-left: 4px solid #f5c6cb;
+        }
+
+        .success-message {
+            background: #d4edda;
+            color: #155724;
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-top: 10px;
+            border-left: 4px solid #c3e6cb;
+        }
+
+        .query-type-toggle {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .toggle-btn {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #e0e0e0;
+            background: white;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .toggle-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .empty-state {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            color: #999;
+            text-align: center;
+            padding: 40px;
+        }
+
+        .empty-state-icon {
+            font-size: 4rem;
+            margin-bottom: 20px;
+        }
+
+        .empty-state h3 {
+            font-size: 1.5rem;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .empty-state p {
+            font-size: 1rem;
+            max-width: 500px;
+        }
+
+        @media (max-width: 768px) {
+            .main-content {
+                flex-direction: column;
+            }
+
+            .sidebar {
+                width: 100%;
+                border-right: none;
+                border-bottom: 1px solid #e0e0e0;
+            }
+
+            .message-content {
+                max-width: 85%;
+            }
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>🔮 QueryChain AI</h1>
+        <p>Ask questions about your data in plain English</p>
+    </div>
+
+    <div class="main-content">
+        <div class="sidebar">
+            <h3>📝 Example Queries</h3>
+            <div class="example-query" data-query="Find all managers with CTC greater than 50 LPA" data-type="hybrid">
+                Find managers with CTC > 50 LPA
+            </div>
+            <div class="example-query" data-query="Show me people in CO branch" data-type="hybrid">
+                Show me people in CO branch
+            </div>
+            <div class="example-query" data-query="Tell me about Kangan Gupta" data-type="hybrid">
+                Tell me about Kangan Gupta
+            </div>
+            <div class="example-query" data-query="Find all tech branches with CGPA above 8" data-type="hybrid">
+                Find tech branches with CGPA > 8
+            </div>
+            <div class="example-query" data-query="What is the average CTC in the database?" data-type="hybrid">
+                What is the average CTC?
+            </div>
+            <div class="example-query" data-query="Change the CTC for Kangan Gupta to 70" data-type="update">
+                Update CTC for Kangan Gupta
+            </div>
+            <div class="example-query" data-query="Update Vidit Tayal's branch to IT" data-type="update">
+                Change branch for Vidit Tayal
+            </div>
+        </div>
+
+        <div class="chat-area">
+            <div class="messages" id="messages">
+                <div class="empty-state">
+                    <div class="empty-state-icon">💬</div>
+                    <h3>Welcome to QueryChain AI!</h3>
+                    <p>Start by typing a question about your data, or click on one of the example queries to get
+                        started.</p>
+                </div>
+            </div>
+
+            <div class="input-area">
+                <div class="query-type-toggle">
+                    <button class="toggle-btn active" data-type="hybrid">🔍 Query</button>
+                    <button class="toggle-btn" data-type="update">✏️ Update</button>
+                </div>
+                <div class="input-wrapper">
+                    <div class="input-group">
+                        <label for="collection">Collection</label>
+                        <select id="collection">
+                            <option value="managers">Managers</option>
+                            <option value="employees">Employees</option>
+                        </select>
+                    </div>
+                    <div class="input-group" style="flex: 3;">
+                        <label for="userInput">Your Question</label>
+                        <input
+                                type="text"
+                                id="userInput"
+                                placeholder="e.g., Find all managers with CTC greater than 50 LPA"
+                                autocomplete="off"
+                        >
+                    </div>
+                    <div class="action-buttons">
+                        <button class="btn btn-primary" id="sendBtn">
+                            <span id="btnText">Send</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+    // State
+    let currentQueryType = 'hybrid';
+    let isLoading = false;
+
+    // DOM Elements
+    const messagesContainer = document.getElementById('messages');
+    const userInput = document.getElementById('userInput');
+    const collectionSelect = document.getElementById('collection');
+    const sendBtn = document.getElementById('sendBtn');
+    const btnText = document.getElementById('btnText');
+    const toggleBtns = document.querySelectorAll('.toggle-btn');
+    const exampleQueries = document.querySelectorAll('.example-query');
+
+    // Toggle Query Type
+    toggleBtns.forEach(btn => {
+        btn.addEventListener('click', () => {
+            toggleBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentQueryType = btn.dataset.type;
+            userInput.placeholder = currentQueryType === 'hybrid'
+                ? 'e.g., Find all managers with CTC greater than 50 LPA'
+                : 'e.g., Change the CTC for Kangan Gupta to 70';
+        });
+    });
+
+    // Example Queries
+    exampleQueries.forEach(query => {
+        query.addEventListener('click', () => {
+            const text = query.dataset.query;
+            const type = query.dataset.type;
+
+            // Set query type
+            toggleBtns.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.type === type);
+            });
+            currentQueryType = type;
+
+            // Set input and send
+            userInput.value = text;
+            handleSend();
+        });
+    });
+
+    // Send Button
+    sendBtn.addEventListener('click', handleSend);
+    userInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter' && !isLoading) {
+            handleSend();
+        }
+    });
+
+    async function handleSend() {
+        const query = userInput.value.trim();
+        const collection = collectionSelect.value;
+
+        if (!query || isLoading) return;
+
+        // Clear empty state
+        const emptyState = messagesContainer.querySelector('.empty-state');
+        if (emptyState) {
+            emptyState.remove();
+        }
+
+        // Add user message
+        addMessage('user', query);
+        userInput.value = '';
+
+        // Set loading state
+        isLoading = true;
+        sendBtn.disabled = true;
+        btnText.innerHTML = '<span class="loading"></span>';
+
+        try {
+            const endpoint = currentQueryType === 'hybrid'
+                ? '/api/hybrid-query'
+                : '/api/update-query';
+
+            const response = await fetch(`http://localhost:3001${endpoint}`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    userInput: query,
+                    collectionName: collection
+                })
+            });
+
+            const result = await response.json();
+
+            if (!response.ok) {
+                throw new Error(result.error || 'Request failed');
+            }
+
+            // Display result
+            if (currentQueryType === 'hybrid') {
+                displayHybridResult(result);
+            } else {
+                displayUpdateResult(result);
+            }
+
+        } catch (error) {
+            addMessage('assistant', `<div class="error-message">❌ Error: ${error.message}</div>`);
+        } finally {
+            isLoading = false;
+            sendBtn.disabled = false;
+            btnText.textContent = 'Send';
+        }
+    }
+
+    function addMessage(type, content) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = `message ${type}`;
+
+        const avatar = document.createElement('div');
+        avatar.className = 'message-avatar';
+        avatar.textContent = type === 'user' ? 'U' : 'AI';
+
+        const contentDiv = document.createElement('div');
+        contentDiv.className = 'message-content';
+        contentDiv.innerHTML = content;
+
+        messageDiv.appendChild(avatar);
+        messageDiv.appendChild(contentDiv);
+        messagesContainer.appendChild(messageDiv);
+
+        // Scroll to bottom
+        messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    }
+
+    function displayHybridResult(result) {
+        let content = '';
+
+        if (result.winner === 'rag') {
+            // RAG Result
+            content = `<strong>Answer:</strong><br>${result.answer}`;
+
+            if (result.context && result.context.length > 0) {
+                content += '<br><br><strong>Sources:</strong>';
+                content += createTable(result.context);
+            }
+
+            content += `<span class="confidence-badge ${getConfidenceClass(result.confidence)}">
+                Confidence: ${(result.confidence * 100).toFixed(1)}%
+            </span>`;
+        } else {
+            // NL-to-Query Result
+            if (result.data && result.data.length > 0) {
+                content = `<strong>Found ${result.data.length} result(s):</strong>`;
+                content += createTable(result.data);
+            } else {
+                content = '<strong>No results found</strong><br>Try refining your query or using different keywords.';
+            }
+
+            content += `<span class="confidence-badge ${getConfidenceClass(result.confidence)}">
+                Confidence: ${(result.confidence * 100).toFixed(1)}%
+            </span>`;
+
+            if (result.mongoQuery) {
+                content += `<br><br><small style="color: #666;">MongoDB Query: <code>${JSON.stringify(result.mongoQuery)}</code></small>`;
+            }
+        }
+
+        addMessage('assistant', content);
+    }
+
+    function displayUpdateResult(result) {
+        let content = '';
+
+        if (result.modifiedCount > 0) {
+            content = `<div class="success-message">
+                ✅ Successfully updated ${result.modifiedCount} document(s)!
+                ${result.reEmbeddedCount > 0 ? `<br>Re-synced ${result.reEmbeddedCount} embeddings.` : ''}
+            </div>`;
+        } else {
+            content = `<div class="error-message">
+                ⚠️ No documents were modified. Please check your query.
+            </div>`;
+        }
+
+        addMessage('assistant', content);
+    }
+
+    function createTable(data) {
+        if (!data || data.length === 0) return '';
+
+        // Get all unique keys
+        const keys = [...new Set(data.flatMap(Object.keys))].filter(k => k !== '_id' && k !== 'docEmbedding' && k !== 'score');
+
+        let table = '<table class="result-table"><thead><tr>';
+        keys.forEach(key => {
+            table += `<th>${key}</th>`;
+        });
+        table += '</tr></thead><tbody>';
+
+        data.forEach(row => {
+            table += '<tr>';
+            keys.forEach(key => {
+                const value = row[key] !== undefined ? row[key] : 'N/A';
+                table += `<td>${typeof value === 'object' ? JSON.stringify(value) : value}</td>`;
+            });
+            table += '</tr>';
+        });
+
+        table += '</tbody></table>';
+        return table;
+    }
+
+    function getConfidenceClass(confidence) {
+        if (confidence >= 0.7) return 'confidence-high';
+        if (confidence >= 0.4) return 'confidence-medium';
+        return 'confidence-low';
+
+}
+</script>
+</body>
+</html>
